@@ -28,7 +28,7 @@ LABEL company '{\
         "name": "Blue Robotics/Water Linked",\
         "email": "support@bluerobotics.com"\
     }'
-LABEL readme 'https://github.com/waterlinked/blueos-ugps-extension/blob/master/readme.md'
+LABEL readme 'https://github.com/waterlinked/blueos-ugps-extension/{tag}/readme.md'
 LABEL website 'https://github.com/waterlinked/blueos-ugps-extension'
 LABEL support 'https://github.com/waterlinked/blueos-ugps-extension'
 LABEL requirements="core >= 1"
