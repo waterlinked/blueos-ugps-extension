@@ -5,29 +5,16 @@ RUN python /app/setup.py install
 
 EXPOSE 80/tcp
 
-LABEL version="1.0.2"
+LABEL version="1.0.4"
 
 LABEL permissions '\
 {\
-  "ExposedPorts": {\
-    "80/tcp": {}\
-  },\
+  "NetworkMode": "host",\
   "Env": [\
-    "UGPS_HOST=http://192.168.2.94",\
-    "MAVLINK_HOST=http://192.168.2.2:6040",\
-    "QGC_IP=192.168.2.1"\
-    ],\
-  "HostConfig": {\
-    "Binds":["/root/.config:/root/.config"],\
-    "ExtraHosts": ["host.docker.internal:host-gateway"],\
-    "PortBindings": {\
-      "80/tcp": [\
-        {\
-          "HostPort": ""\
-        }\
-      ]\
-    }\
-  }\
+	"UGPS_HOST=http://192.168.2.94",\
+	"MAVLINK_HOST=http://192.168.2.2:6040",\
+	"QGC_IP=192.168.2.1"\
+  ]\
 }'
 LABEL authors '[\
     {\
@@ -41,9 +28,9 @@ LABEL company '{\
         "name": "Blue Robotics/Water Linked",\
         "email": "support@bluerobotics.com"\
     }'
-LABEL readme 'https://raw.githubusercontent.com/Williangalvani/blueos-ugps-extension/{tag}/readme.md'
-LABEL website 'https://github.com/Williangalvani/blueos-ugps-extension/'
-LABEL support 'https://github.com/Williangalvani/blueos-ugps-extension/'
+LABEL readme 'https://github.com/waterlinked/blueos-ugps-extension/blob/master/readme.md'
+LABEL website 'https://github.com/waterlinked/blueos-ugps-extension'
+LABEL support 'https://github.com/waterlinked/blueos-ugps-extension'
 LABEL requirements="core >= 1"
 
 CMD cd /app && python main.py --ugps_host $UGPS_HOST --mavlink_host $MAVLINK_HOST --qgc_ip $QGC_IP

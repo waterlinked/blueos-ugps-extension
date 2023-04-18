@@ -2,7 +2,7 @@
 
 ## State
 
-This extension is currently in development. It currently **has no UI page** (so creates no listing in the sidebar of BlueOS).
+This extension is currently in development. It **has no UI page** (so creates no listing in the sidebar of BlueOS).
 
 ## Functionality
 
@@ -13,7 +13,7 @@ Assuming the UGPS is detected and working this service
     * the autopilot sends regular `GLOBAL_POSITION_INT` messages to the topside computer with its filtered position estimates
 * forwards topside position from UGPS Topside to UDP port `14401` with NMEA to be received by QGroundControl (implemented, but currently not tested)
 
-If you do not have access to a UGPS system, you can use https://demo.waterlinked.com , which simulates a UGPS system with its API.
+If you do not have access to a UGPS system, you can use UGPS_HOST=https://demo.waterlinked.com , which simulates a UGPS system with its API.
 
 Hardware documentation can be found at https://waterlinked.github.io/underwater-gps/integration/bluerov-integration/
 
@@ -21,9 +21,7 @@ Hardware documentation can be found at https://waterlinked.github.io/underwater-
 
 There are 2 options
 
-### Use the extensions manager in BlueOS 1.1
-⚠️ Latest version of this extension is not available in extensions manager yet. This documents the future.
-
+### Use the extensions manager in BlueOS 1.1.0
 * Click Extensions > Extensions Manager
 * Install this extension
 
@@ -46,19 +44,21 @@ To set this up, ssh into the Raspberry Pi (or access via `red-pill` in [BlueOS T
 
 install git, clone this repository and run
 ```
-docker build -t ghcr.io/waterlinked/blueos-ugps-extension:latest .
+# build the docker image
+docker build -t waterlinked/blueos-ugps-extension:latest .
 # see all images
 docker images
 
+# running the plugin
 
 # either: run detached
 #   with standard command
-docker run -d --net=host ghcr.io/waterlinked/blueos-ugps-extension:latest python app/main.py --ugps_host http://192.168.2.94 --mavlink_host http://192.168.2.2:6040 --qgc_ip 192.168.2.1
+docker run -d --net=host waterlinked/blueos-ugps-extension:latest python app/main.py --ugps_host http://192.168.2.94 --mavlink_host http://192.168.2.2:6040 --qgc_ip 192.168.2.1
 #   or with demo server
-docker run -d --net=host ghcr.io/waterlinked/blueos-ugps-extension:latest python app/main.py --ugps_host https://demo.waterlinked.com --mavlink_host http://192.168.2.2:6040 --qgc_ip 192.168.2.1
+docker run -d --net=host waterlinked/blueos-ugps-extension:latest python app/main.py --ugps_host https://demo.waterlinked.com --mavlink_host http://192.168.2.2:6040 --qgc_ip 192.168.2.1
 
 # or: in interactive shell to get debug output
-docker run -it ghcr.io/waterlinked/blueos-ugps-extension:latest /bin/bash
+docker run -it waterlinked/blueos-ugps-extension:latest /bin/bash
 #   with standard command
 cd app && python main.py --ugps_host http://192.168.2.94 --mavlink_host http://192.168.2.2:6040 --qgc_ip 192.168.2.1
 #   or with demo server
@@ -70,4 +70,8 @@ exit
 docker stop [container-id]
 docker start [container-id]
 docker log [container-id] # if run detached
+
+# if you are a developer, upload to registry with (replace latest with desired tag)
+docker login -u waterlinked
+docker push waterlinked/blueos-ugps-extension:latest
 ```
