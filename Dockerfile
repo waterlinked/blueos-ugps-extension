@@ -25,10 +25,10 @@ LABEL authors '[\
 LABEL docs ''
 LABEL company '{\
         "about": "",\
-        "name": "Blue Robotics/Water Linked",\
-        "email": "support@bluerobotics.com"\
+        "name": "Blue Robotics / Water Linked",\
+        "email": "support@bluerobotics.com / support@waterlinked.com"\
     }'
-LABEL readme 'https://github.com/waterlinked/blueos-ugps-extension/{tag}/readme.md'
+LABEL readme 'https://raw.githubusercontent.com/waterlinked/blueos-ugps-extension/{tag}/readme.md'
 LABEL website 'https://github.com/waterlinked/blueos-ugps-extension'
 LABEL support 'https://github.com/waterlinked/blueos-ugps-extension'
 LABEL requirements="core >= 1"
