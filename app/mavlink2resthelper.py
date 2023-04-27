@@ -22,6 +22,7 @@ class Mavlink2RestBase:
         # default for acquiring data (e.g. from flight controller)
         self.get_vehicle = get_vehicle
         self.get_component = get_component
+        self.helper_structs = dict()
 
     def get(self, path: str):
         """
@@ -44,6 +45,22 @@ class Mavlink2RestBase:
         except Exception as e:
             logger.error(f"Got exception: {e}")
             return None
+
+    def get_helper_struct(self, name: str):
+        """
+        This abstraction gets a data strcuture from mavlink2rest via the helper-path
+        The result is cached.
+        """
+        if name in self.helper_structs:
+            return self.helper_structs[name]
+        else:
+            helper_struct = self.get(f"/helper/mavlink?name={name}")
+            if helper_struct is not None:
+                self.helper_structs[name] = helper_struct
+                logger.debug(f"Cached helper struct for: {name}")
+            else:
+                logger.debug(f"Could not cache helper struct for: {name}")
+            return helper_struct
 
     def get_message(self, path: str, vehicle: Optional[int] = None, component: Optional[int] = None) -> Optional[str]:
         """
@@ -109,7 +126,7 @@ class Mavlink2RestBase:
             previous_frequency = 0.0
 
         # load message template from mavlink2rest helper
-        command = self.get("/helper/mavlink?name=COMMAND_LONG")
+        command = self.get_helper_struct("COMMAND_LONG")
         if command is None:
             return False
 
@@ -134,7 +151,7 @@ class Mavlink2RestBase:
         Sets parameter "param_name" of type param_type to value "value" in the autpilot
         Returns True if succesful, False otherwise
         """
-        payload = self.get("/helper/mavlink?name=PARAM_SET")
+        payload = self.get_helper_struct("PARAM_SET")
         if payload is None:
             return False
         try:
@@ -163,31 +180,53 @@ class Mavlink2RestHelper(Mavlink2RestBase):
     def get_temperature(self):
         return self.get_float('/SCALED_PRESSURE2/message/temperature')/100.0
 
-    def send_gps_input(self, in_json: object, gps_id: int = 0):
+    def send_gps_input(self, global_locator_position: object, acoustic_locator_position: object, gps_id: int = 0):
         """
         Forwards the locator(ROV) position to mavproxy's GPSInput module
         """
-        out_json = self.get("/helper/mavlink?name=GPS_INPUT")
+        out_json = self.get_helper_struct("GPS_INPUT")
 
         try:
             out_json["header"]["system_id"] = self.vehicle
             out_json["header"]["component_id"] = self.component
             out_json["message"]["gps_id"] = gps_id
-            out_json["message"]['lat'] = math.floor(in_json['lat'] * 1e7)
-            out_json["message"]['lon'] = math.floor(in_json['lon'] * 1e7)
-            # fix_quality of demo.waterlinked.com is 1
-            out_json["message"]['fix_type'] = 0 if in_json['fix_quality'] == 0 else 3
-            out_json["message"]['hdop'] = 65535.0 if in_json['hdop'] == -1 else in_json['hdop']
-            out_json["message"]['vdop'] = 65535.0
-            out_json["message"]['satellites_visible'] = max(in_json['numsats'], 0)
-            # GPS orientation is forwarded from the received heading /VFR_HUD/message/heading
-            if in_json['orientation'] == -1:
-                out_json["message"]['yaw'] = 0  # invalid
-            elif in_json['orientation'] == 0:
-                out_json["message"]['yaw'] = 36000  # remap 0 -> 360
+            out_json["message"]['ignore_flags']['bits'] = 1 | 8 | 16 | 32 | 128
+
+            # fix_quality of GPS and acoustic location quality is independant in API
+            # combine them here
+            fix_valid = global_locator_position is not None and global_locator_position['fix_quality'] != 0 and \
+                        global_locator_position['hdop'] != -1 and \
+                        acoustic_locator_position is not None and acoustic_locator_position['position_valid']
+
+            out_json["message"]['fix_type'] = 3 if fix_valid else 0
+
+            if fix_valid:
+                # The Topside GPS has a hdop, the acoustic positioning has a standard deviation in meters.
+                # It is not possible to combine them correctly with the provided information.
+                # Send them only if both are valid
+                out_json["message"]['horiz_accuracy'] = acoustic_locator_position['std']
+                out_json["message"]['hdop'] = global_locator_position['hdop']
+                # This is a hack to see the acoustic accuracy in QGC in an easy way.
+                # The accuracy is not available in standard telemetry values.
+                out_json["message"]['vdop'] = acoustic_locator_position['std']
             else:
-                out_json["message"]['yaw'] = math.floor(in_json['orientation'] * 100)  # default
-            out_json["message"]['ignore_flags']['bits'] = 1 | 4 | 8 | 16 | 32 | 64 | 128
+                out_json["message"]['horiz_accuracy'] = 300  # 300m as maximum range
+                out_json["message"]['vdop'] = 65535.0
+                out_json["message"]['hdop'] = 65535.0
+
+
+            if global_locator_position is not None:
+                out_json["message"]['lat'] = math.floor(global_locator_position['lat'] * 1e7)
+                out_json["message"]['lon'] = math.floor(global_locator_position['lon'] * 1e7)
+                out_json["message"]['satellites_visible'] = max(global_locator_position['numsats'], 0)
+                # GPS orientation is forwarded from the received heading /VFR_HUD/message/heading
+                if global_locator_position['orientation'] == -1:
+                    out_json["message"]['yaw'] = 0  # invalid
+                elif global_locator_position['orientation'] == 0:
+                    out_json["message"]['yaw'] = 36000  # remap 0 -> 360
+                else:
+                    out_json["message"]['yaw'] = math.floor(global_locator_position['orientation'] * 100)  # default
+
         except Exception as e:
             logger.error(f"Parsing locator position not successfull. {e}")
             return

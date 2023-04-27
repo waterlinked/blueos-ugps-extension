@@ -43,14 +43,17 @@ class UgpsExtension:
                 # Send heading to ugps
                 self.ugps.send_locator_orientation(self.mavlink.get_orientation())
 
+            # Expected update rate 4Hz, request rate 4Hz
             if time.time() > last_locator_update + update_period:
                 last_locator_update = time.time()
 
                 logger.info("Forwarding locator position from ugps to mavlink")
-                locator_position = self.ugps.get_locator_position()
-                if locator_position:
-                    self.mavlink.send_gps_input(locator_position)
+                global_locator_position = self.ugps.get_global_locator_position()
+                acoustic_locator_position = self.ugps.get_acoustic_locator_position()
+                # always update mavlink position, even if no data received from topside (mavlink has to know that position is invalid)
+                self.mavlink.send_gps_input(global_locator_position, acoustic_locator_position)
 
+            # Expected update rate 1Hz, request rate 4Hz
             if args.qgc_ip != "" and time.time() > last_master_update + update_period:
                 last_master_update = time.time()
 

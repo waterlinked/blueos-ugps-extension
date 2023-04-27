@@ -38,20 +38,6 @@ class UgpsConnection:
             logger.error(f"Got exception: {e}")
             return None
 
-    def get_float(self, path: str) -> float:
-        """
-        Get mavlink data from ugps.
-        Uses initialised get_vehicle and get_component as defaults, unless overridden.
-        Example: get_float('/VFR_HUD')
-        Returns the data as a float (nan on failure)
-        """
-        response = self.get_message(path)
-        try:
-            result = float(response)
-        except Exception:
-            result = float("nan")
-        return result
-
     def put(self, path: str, json: object) -> bool:
         """
         Helper to request with POST from ugps
@@ -88,13 +74,18 @@ class UgpsConnection:
 
     # Specific messages
     def check_position(self, json: object) -> bool:
-        if json is None or 'lat' not in json or 'lon' not in json or 'orientation' not in json:
+        if json is None:
+            return None
+        if 'lat' not in json or 'lon' not in json or 'orientation' not in json:
             logger.error(f"Position format not valid.")
             return None
         else:
             return json
 
-    def get_locator_position(self):
+    def get_acoustic_locator_position(self):
+        return self.get("/api/v1/position/acoustic/filtered")
+
+    def get_global_locator_position(self):
         return self.check_position(self.get("/api/v1/position/global"))
 
     def get_ugps_topside_position(self):

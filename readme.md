@@ -29,11 +29,16 @@ Configuration is usually not required, but can be done by editing the extension 
 
 Editing requires [Pirate Mode](https://docs.bluerobotics.com/ardusub-zola/software/onboard/BlueOS-latest/advanced-usage/#pirate-mode)
 to be enabled, after which the "Edit" button can be used. Copy the Original Settings contents
-into the Custom settings box, and (if necessary) change the IPs/Host addresses:
+into the Custom settings box, and (if necessary) change the IPs/Host addresses, e.g. to use the demo server:
 ```
-    "UGPS_HOST=http://192.168.2.94",
-    "MAVLINK_HOST=http://192.168.2.2:6040",
-    "QGC_IP=192.168.2.1"
+{
+  "NetworkMode": "host",
+  "Env": [
+	"UGPS_HOST=https://demo.waterlinked.com",
+	"MAVLINK_HOST=http://192.168.2.2:6040",
+	"QGC_IP=192.168.2.1"
+  ]
+}
 ```
 
 Use the "View Logs" button to check the status.
