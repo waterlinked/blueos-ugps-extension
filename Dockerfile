@@ -5,9 +5,9 @@ RUN python /app/setup.py install
 
 EXPOSE 80/tcp
 
-LABEL version="1.0.5"
+LABEL version="1.0.6"
 
-LABEL permissions '\
+LABEL permissions='\
 {\
   "NetworkMode": "host",\
   "Env": [\
@@ -16,21 +16,28 @@ LABEL permissions '\
 	"QGC_IP=192.168.2.1"\
   ]\
 }'
-LABEL authors '[\
+LABEL authors='[\
     {\
         "name": "Willian Galvani",\
         "email": "willian@bluerobotics.com"\
     }\
 ]'
-LABEL docs ''
-LABEL company '{\
+LABEL company='{\
         "about": "",\
-        "name": "Blue Robotics / Water Linked",\
-        "email": "support@bluerobotics.com / support@waterlinked.com"\
+        "name": "Water Linked",\
+        "email": "support@waterlinked.com"\
     }'
-LABEL readme 'https://raw.githubusercontent.com/waterlinked/blueos-ugps-extension/{tag}/readme.md'
-LABEL website 'https://github.com/waterlinked/blueos-ugps-extension'
-LABEL support 'https://github.com/waterlinked/blueos-ugps-extension'
-LABEL requirements="core >= 1"
+LABEL type="device-integration"
+LABEL tags='[\
+    "positioning",\
+    "navigation",\
+    "short-baseline"\
+]'
+LABEL readme='https://raw.githubusercontent.com/waterlinked/blueos-ugps-extension/{tag}/readme.md'
+LABEL links='{\
+    "website": "https://github.com/waterlinked/blueos-ugps-extension",\
+    "support": "https://github.com/waterlinked/blueos-ugps-extension/issues"\
+}'
+LABEL requirements="core >= 1.1"
 
 CMD cd /app && python main.py --ugps_host $UGPS_HOST --mavlink_host $MAVLINK_HOST --qgc_ip $QGC_IP
