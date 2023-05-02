@@ -17,6 +17,7 @@ class UgpsExtension:
         self.mavlink = Mavlink2RestHelper(host=args.mavlink_host, vehicle=1, component=220, get_vehicle=1, get_component=1)
         self.ugps = UgpsConnection(host=args.ugps_host)
         self.qgc = QgcConnection(ip=args.qgc_ip, port=14401)
+        self.args = args
 
     def run(self) -> None:
         self.setup_streamrates()
@@ -27,7 +28,7 @@ class UgpsExtension:
 
         logger.info("Running")
 
-        update_period = 0.25
+        update_period = args.update_period
         last_master_update = 0
         last_locator_update = 0
         last_position_update = 0
@@ -51,7 +52,7 @@ class UgpsExtension:
                 global_locator_position = self.ugps.get_global_locator_position()
                 acoustic_locator_position = self.ugps.get_acoustic_locator_position()
                 # always update mavlink position, even if no data received from topside (mavlink has to know that position is invalid)
-                self.mavlink.send_gps_input(global_locator_position, acoustic_locator_position)
+                self.mavlink.send_gps_input(global_locator_position, acoustic_locator_position, args)
 
             # Expected update rate 1Hz, request rate 4Hz
             if args.qgc_ip != "" and time.time() > last_master_update + update_period:
@@ -90,7 +91,18 @@ if __name__ == "__main__":
     parser.add_argument('--qgc_ip', action="store", type=str, default="192.168.2.2",
                         help="IP address to send UGPS Topside position via UDP to. Set to '' \
                             to not send any NMEA-strings over UDP.")
+    parser.add_argument('--update_period', type=float, default="0.25",
+                        help="Set update period in seconds. Default %(default)s s")
+    parser.add_argument('--ignore_gps', action="store_true",
+                        help="By default Locator fix_type/GPS-Lock is true if Topside has GPS fix and acoustic fix. Ignore GPS fix with this option.")
+    parser.add_argument('--ignore_acoustic', action="store_true",
+                        help="By default Locator fix_type/GPS-Lock is true if Topside has GPS fix and acoustic fix. Ignore acoustic fix with this option.")
+    parser.add_argument('--logfile', action="store_true",
+                        help="Store a logfile with timestamp as name.")
     args = parser.parse_args()
+
+    if args.logfile:
+        logger.add("log_{time}.txt")
 
     service = UgpsExtension(args)
     service.run()

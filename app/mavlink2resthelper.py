@@ -180,7 +180,7 @@ class Mavlink2RestHelper(Mavlink2RestBase):
     def get_temperature(self):
         return self.get_float('/SCALED_PRESSURE2/message/temperature')/100.0
 
-    def send_gps_input(self, global_locator_position: object, acoustic_locator_position: object, gps_id: int = 0):
+    def send_gps_input(self, global_locator_position: object, acoustic_locator_position: object, args: object, gps_id: int = 0):
         """
         Forwards the locator(ROV) position to mavproxy's GPSInput module
         """
@@ -194,26 +194,22 @@ class Mavlink2RestHelper(Mavlink2RestBase):
 
             # fix_quality of GPS and acoustic location quality is independant in API
             # combine them here
-            fix_valid = global_locator_position is not None and global_locator_position['fix_quality'] != 0 and \
-                        global_locator_position['hdop'] != -1 and \
-                        acoustic_locator_position is not None and acoustic_locator_position['position_valid']
+            # global_locator_position is None when heading is not set. That should always yield no fix.
+            # ignore_gps can override if fix_quality is 0 due to static GPS position
+            # ignore_acoustic can override position_valid if necessary
+            fix_valid = global_locator_position is not None and (global_locator_position['fix_quality'] != 0 or args.ignore_gps) and \
+                        (acoustic_locator_position is not None and acoustic_locator_position['position_valid']) or args.ignore_acoustic
 
             out_json["message"]['fix_type'] = 3 if fix_valid else 0
 
-            if fix_valid:
-                # The Topside GPS has a hdop, the acoustic positioning has a standard deviation in meters.
-                # It is not possible to combine them correctly with the provided information.
-                # Send them only if both are valid
-                out_json["message"]['horiz_accuracy'] = acoustic_locator_position['std']
-                out_json["message"]['hdop'] = global_locator_position['hdop']
-                # This is a hack to see the acoustic accuracy in QGC in an easy way.
-                # The accuracy is not available in standard telemetry values.
-                out_json["message"]['vdop'] = acoustic_locator_position['std']
-            else:
-                out_json["message"]['horiz_accuracy'] = 300  # 300m as maximum range
-                out_json["message"]['vdop'] = 65535.0
-                out_json["message"]['hdop'] = 65535.0
-
+            # The Topside GPS has a hdop, the acoustic positioning has a standard deviation in meters.
+            # It is not possible to combine them correctly with the provided information.
+            out_json["message"]['hdop'] = 65535.0 if global_locator_position is None else global_locator_position['hdop']
+            # 300m as maximum range
+            out_json["message"]['horiz_accuracy'] = 300 if acoustic_locator_position is None else acoustic_locator_position['std']
+            # This is a hack to see the acoustic accuracy in QGC in an easy way.
+            # The accuracy is not available in standard telemetry values.
+            out_json["message"]['vdop'] = 65535.0 if acoustic_locator_position is None else acoustic_locator_position['std']
 
             if global_locator_position is not None:
                 out_json["message"]['lat'] = math.floor(global_locator_position['lat'] * 1e7)

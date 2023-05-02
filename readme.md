@@ -11,7 +11,7 @@ Assuming the UGPS is detected and working this service
 * forwards locator position from UGPS Topside to MAVLink (message `GPS_INPUT`)
     * the autopilot should send corresponding `GPS_RAW_INT` messages to the topside computer (QGroundControl)
     * the autopilot sends regular `GLOBAL_POSITION_INT` messages to the topside computer with its filtered position estimates
-* forwards topside position from UGPS Topside to UDP port `14401` with NMEA to be received by QGroundControl (implemented, but currently not tested)
+* forwards topside position from UGPS Topside to UDP port `14401` with NMEA to be received by QGroundControl.
 
 If you do not have access to a UGPS system, you can use UGPS_HOST=https://demo.waterlinked.com , which simulates a UGPS system with its API.
 
@@ -34,9 +34,10 @@ into the Custom settings box, and (if necessary) change the IPs/Host addresses, 
 {
   "NetworkMode": "host",
   "Env": [
-	"UGPS_HOST=https://demo.waterlinked.com",
-	"MAVLINK_HOST=http://192.168.2.2:6040",
-	"QGC_IP=192.168.2.1"
+  "UGPS_HOST=https://demo.waterlinked.com",
+  "MAVLINK_HOST=http://192.168.2.2:6040",
+  "QGC_IP=192.168.2.1",
+  "EXTRA_ARGS=--ignore_gps --ignore_acoustic"
   ]
 }
 ```

@@ -11,9 +11,10 @@ LABEL permissions='\
 {\
   "NetworkMode": "host",\
   "Env": [\
-	"UGPS_HOST=http://192.168.2.94",\
-	"MAVLINK_HOST=http://192.168.2.2:6040",\
-	"QGC_IP=192.168.2.1"\
+    "UGPS_HOST=http://192.168.2.94",\
+    "MAVLINK_HOST=http://192.168.2.2:6040",\
+    "QGC_IP=192.168.2.1",\
+    "EXTRA_ARGS=--ignore_gps --ignore_acoustic"\
   ]\
 }'
 LABEL authors='[\
@@ -40,4 +41,4 @@ LABEL links='{\
 }'
 LABEL requirements="core >= 1.1"
 
-CMD cd /app && python main.py --ugps_host $UGPS_HOST --mavlink_host $MAVLINK_HOST --qgc_ip $QGC_IP
+CMD cd /app && python main.py $EXTRA_ARGS --ugps_host $UGPS_HOST --mavlink_host $MAVLINK_HOST --qgc_ip $QGC_IP
