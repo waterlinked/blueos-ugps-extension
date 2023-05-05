@@ -195,9 +195,10 @@ class Mavlink2RestHelper(Mavlink2RestBase):
             # fix_quality of GPS and acoustic location quality is independant in API
             # combine them here
             # global_locator_position is None when heading is not set. That should always yield no fix.
+            # global_locator_position['fix_quality'] = 1 in demo, = 0 when topside position is set to static. So only look at hdop
             # ignore_gps can override if fix_quality is 0 due to static GPS position
             # ignore_acoustic can override position_valid if necessary
-            fix_valid = global_locator_position is not None and (global_locator_position['fix_quality'] != 0 or args.ignore_gps) and \
+            fix_valid = global_locator_position is not None and (global_locator_position['hdop'] < 20 or args.ignore_gps) and \
                         (acoustic_locator_position is not None and acoustic_locator_position['position_valid']) or args.ignore_acoustic
 
             out_json["message"]['fix_type'] = 3 if fix_valid else 0

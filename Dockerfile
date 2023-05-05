@@ -14,7 +14,7 @@ LABEL permissions='\
     "UGPS_HOST=http://192.168.2.94",\
     "MAVLINK_HOST=http://192.168.2.2:6040",\
     "QGC_IP=192.168.2.1",\
-    "EXTRA_ARGS=--ignore_gps --ignore_acoustic"\
+    "EXTRA_ARGS="\
   ]\
 }'
 LABEL authors='[\
