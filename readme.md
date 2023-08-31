@@ -12,6 +12,7 @@ Assuming the UGPS is detected and working this service
     * the autopilot should send corresponding `GPS_RAW_INT` messages to the topside computer (QGroundControl)
     * the autopilot sends regular `GLOBAL_POSITION_INT` messages to the topside computer with its filtered position estimates
 * forwards topside position from UGPS Topside to UDP port `14401` with NMEA to be received by QGroundControl.
+    * This feature is **experimental** and does not work reliably with all version of QGroundControl.
 
 If you do not have access to a UGPS system, you can use UGPS_HOST=https://demo.waterlinked.com , which simulates a UGPS system with its API.
 
