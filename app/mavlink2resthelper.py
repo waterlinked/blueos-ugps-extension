@@ -172,7 +172,7 @@ class Mavlink2RestBase:
 
 class Mavlink2RestHelper(Mavlink2RestBase):
     def get_depth(self):
-        return -self.get_float('/VFR_HUD/message/alt')
+        return -self.get_float('/AHRS2/message/altitude') # alternative used before /VFR_HUD/message/alt
 
     def get_orientation(self):
         return self.get_float('/VFR_HUD/message/heading')

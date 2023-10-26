@@ -65,10 +65,13 @@ class UgpsExtension:
 
     def setup_streamrates(self):
         """
-        Setup message streams to get Orientation(VFR_HUD), Depth(VFR_HUD), and temperature(SCALED_PRESSURE2)
+        Setup message streams to get Orientation(VFR_HUD), Depth(AHRS2), and temperature(SCALED_PRESSURE2)
         """
         # VFR_HUD at at least 5Hz
         while not self.mavlink.ensure_message_frequency("VFR_HUD", 5):
+            time.sleep(2)
+
+        while not self.mavlink.ensure_message_frequency("AHRS2", 5):
             time.sleep(2)
 
         # SCALED_PRESSURE2 at at least 1Hz
