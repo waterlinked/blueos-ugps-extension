@@ -114,6 +114,7 @@ class Mavlink2RestBase:
         Returns true if successful, false otherwise
         """
         msg_ids = {
+            "AHRS2": 178,
             "VFR_HUD": 74,
             "SCALED_PRESSURE2": 137
         }
