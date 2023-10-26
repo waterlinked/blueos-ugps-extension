@@ -2,11 +2,11 @@
 
 ## State
 
-This extension is currently in development. It **has no UI page** (so creates no listing in the sidebar of BlueOS).
+This extension **has no UI page** (so it creates no listing in the sidebar of BlueOS).
 
 ## Functionality
 
-Assuming the UGPS is detected and working this service
+Assuming the UGPS is detected and working, this service
 * forwards MAVLink data from [Mavlink2Rest](https://github.com/patrickelectric/mavlink2rest) like depth to the UGPS Topside (to enable it to function)
 * forwards locator position from UGPS Topside to MAVLink (message `GPS_INPUT`)
     * the autopilot should send corresponding `GPS_RAW_INT` messages to the topside computer (QGroundControl)
@@ -22,7 +22,7 @@ Hardware documentation can be found at https://waterlinked.github.io/underwater-
 
 There are 2 options
 
-### Use the extensions manager in BlueOS 1.1.0
+### Preferred: Use the extensions manager in BlueOS > 1.1.0
 * Click Extensions > Extensions Manager
 * Install this extension
 
@@ -45,7 +45,7 @@ into the Custom settings box, and (if necessary) change the IPs/Host addresses, 
 
 Use the "View Logs" button to check the status.
 
-### Build docker image yourself and start it
+### For developers: Build docker image yourself and start it
 
 To set this up, ssh into the Raspberry Pi (or access via `red-pill` in [BlueOS Terminal](https://docs.bluerobotics.com/ardusub-zola/software/onboard/BlueOS-1.0/advanced-usage/#terminal))
 
@@ -78,7 +78,7 @@ docker stop [container-id]
 docker start [container-id]
 docker log [container-id] # if run detached
 
-# if you are a developer, upload to registry with (replace latest with desired tag)
+# if you are a developer, upload the docker image to registry with (replace "latest" with desired tag)
 docker login -u waterlinked
 docker push waterlinked/blueos-ugps-extension:latest
 ```

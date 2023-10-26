@@ -5,7 +5,7 @@ RUN python /app/setup.py install
 
 EXPOSE 80/tcp
 
-LABEL version="1.0.6"
+LABEL version="1.0.7-beta.1"
 
 LABEL permissions='\
 {\
