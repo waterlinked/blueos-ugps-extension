@@ -192,11 +192,11 @@ class Mavlink2RestHelper(Mavlink2RestBase):
             out_json["message"]["gps_id"] = gps_id
             out_json["message"]['ignore_flags']['bits'] = 1 | 8 | 16 | 32 | 128
 
-            # fix_quality of GPS and acoustic location quality is independant in API
+            # fix_quality of GPS and acoustic location quality is independent in API
             # combine them here
             # global_locator_position is None when heading is not set. That should always yield no fix.
             # global_locator_position['fix_quality'] = 1 in demo, = 0 when topside position is set to static. So only look at hdop
-            # ignore_gps can override if fix_quality is 0 due to static GPS position
+            # ignore_gps can override if fix_quality is 0 due to static or external GPS position
             # ignore_acoustic can override position_valid if necessary
             fix_valid = global_locator_position is not None and (global_locator_position['hdop'] < 20 or args.ignore_gps) and \
                         (acoustic_locator_position is not None and acoustic_locator_position['position_valid']) or args.ignore_acoustic
@@ -215,7 +215,8 @@ class Mavlink2RestHelper(Mavlink2RestBase):
             if global_locator_position is not None:
                 out_json["message"]['lat'] = math.floor(global_locator_position['lat'] * 1e7)
                 out_json["message"]['lon'] = math.floor(global_locator_position['lon'] * 1e7)
-                out_json["message"]['satellites_visible'] = max(global_locator_position['numsats'], 0)
+                # ignore_gps overrides satellites_visible so that ArduSub will trust the GPS
+                out_json["message"]['satellites_visible'] = max(global_locator_position['numsats'], 6 if args.ignore_gps else 0)
                 # GPS orientation is forwarded from the received heading /VFR_HUD/message/heading
                 if global_locator_position['orientation'] == -1:
                     out_json["message"]['yaw'] = 0  # invalid
