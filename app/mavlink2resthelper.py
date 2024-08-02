@@ -1,8 +1,10 @@
 import math
+import requests
 from typing import Any, Optional
 
-import requests
 from loguru import logger
+
+from ugps_connection import UgpsConnection
 
 
 class Mavlink2RestBase:
@@ -22,7 +24,7 @@ class Mavlink2RestBase:
         # default for acquiring data (e.g. from flight controller)
         self.get_vehicle = get_vehicle
         self.get_component = get_component
-        self.helper_structs = dict()
+        self.helper_structs = {}
 
     def get(self, path: str):
         """
@@ -50,6 +52,7 @@ class Mavlink2RestBase:
         """
         This abstraction gets a data strcuture from mavlink2rest via the helper-path
         The result is cached.
+        Note that the cache is not copied, so the returned object is modified.
         """
         if name in self.helper_structs:
             return self.helper_structs[name]
@@ -172,8 +175,13 @@ class Mavlink2RestBase:
 
 
 class Mavlink2RestHelper(Mavlink2RestBase):
-    def get_depth(self):
-        return -self.get_float('/AHRS2/message/altitude') # alternative used before /VFR_HUD/message/alt
+    def get_depth(self, use_alt_depth=False):
+        if use_alt_depth:
+            # This can be used if using VFR_HUD causes problems.
+            return -self.get_float('/AHRS2/message/altitude')
+        else:
+            # This is the depth source used in CompanionOS. Sometimes "0.0"
+            return -self.get_float('/VFR_HUD/message/alt')
 
     def get_orientation(self):
         return self.get_float('/VFR_HUD/message/heading')
@@ -181,9 +189,14 @@ class Mavlink2RestHelper(Mavlink2RestBase):
     def get_temperature(self):
         return self.get_float('/SCALED_PRESSURE2/message/temperature')/100.0
 
-    def send_gps_input(self, global_locator_position: object, acoustic_locator_position: object, args: object, gps_id: int = 0):
+    def send_gps_input(self, global_locator_position: Optional[dict], acoustic_locator_position: Optional[dict],
+                       args, ugps_connection: UgpsConnection, gps_id: int = 0):
         """
-        Forwards the locator(ROV) position to mavproxy's GPSInput module
+        Forwards the locator(ROV) position to mavproxy's GPS_INPUT message
+
+        This function does not forward data directly but processes it to achieve a desirable behaviour in Ardupilot
+        - not triggering failsafes
+        - still forwarding if the quality of the signal is actually not good enough
         """
         out_json = self.get_helper_struct("GPS_INPUT")
 
@@ -191,40 +204,78 @@ class Mavlink2RestHelper(Mavlink2RestBase):
             out_json["header"]["system_id"] = self.vehicle
             out_json["header"]["component_id"] = self.component
             out_json["message"]["gps_id"] = gps_id
+            # ignore: alt, vel_horiz, vel_vert, speed_accuracy, vert_accuracy
             out_json["message"]['ignore_flags']['bits'] = 1 | 8 | 16 | 32 | 128
 
-            # fix_quality of GPS and acoustic location quality is independent in API
+            # fix_quality of Topside GPS and acoustic location quality is independent in API
             # combine them here
+            fix_type = 0
+            ignore_gps = False
             # global_locator_position is None when heading is not set. That should always yield no fix.
-            # global_locator_position['fix_quality'] = 1 in demo, = 0 when topside position is set to static. So only look at hdop
-            # ignore_gps can override if fix_quality is 0 due to static or external GPS position
-            # ignore_acoustic can override position_valid if necessary
-            fix_valid = global_locator_position is not None and (global_locator_position['hdop'] < 20 or args.ignore_gps) and \
-                        (acoustic_locator_position is not None and acoustic_locator_position['position_valid']) or args.ignore_acoustic
+            if global_locator_position is None:
+                fix_type = 0
+                logger.debug(f"fix_type={fix_type} from Topside GPS because no message. Heading not set?")
+            # global_locator_position['fix_quality'] always 1 when using demo. Change to 3 for Ardupilot
+            # ignore_gps can override in all cases but heading not set
+            # static GPS yields also 3D-fix
+            elif ugps_connection.host_is_demo or args.ignore_gps or ugps_connection.config_gps_static:
+                fix_type = 3
+                ignore_gps = True
+                logger.debug(f"fix_type={fix_type} from Topside GPS. static={ugps_connection.config_gps_static} args.ignore_gps={args.ignore_gps}")
+            # use (onboard) GPS fixtype as default
+            else:
+                fix_type = global_locator_position['fix_quality']
+                logger.debug(f"fix_type={fix_type} from Topside GPS.")
 
-            out_json["message"]['fix_type'] = 3 if fix_valid else 0
+            # when acoustic position is not valid, fix_type is set to 0
+            # ignore_acoustic can override position_valid if necessary
+            if not(args.ignore_acoustic or (acoustic_locator_position is not None and acoustic_locator_position['position_valid'])):
+                fix_type = 0
+
+            out_json["message"]['fix_type'] = fix_type
 
             # The Topside GPS has a hdop, the acoustic positioning has a standard deviation in meters.
-            # It is not possible to combine them correctly with the provided information.
-            out_json["message"]['hdop'] = 65535.0 if global_locator_position is None else global_locator_position['hdop']
+            # Ardupilot does not use the exact value for accuracy as long as hdop is good enough
+            if ignore_gps:
+                out_json["message"]['hdop'] = 1
+            elif global_locator_position is None or global_locator_position['hdop'] <= 0:
+                # value means not valid in MAVLINK
+                out_json["message"]['hdop'] = 65535.0
+            else:
+                out_json["message"]['hdop'] = global_locator_position['hdop']
+
             # 300m as maximum range
+            # This is the value which is used in Ardupliot EKF3
+            # TODO Current state is ok with config_gps_static but should be scaled up when using the Topside GPS
             out_json["message"]['horiz_accuracy'] = 300 if acoustic_locator_position is None else acoustic_locator_position['std']
-            # This is a hack to see the acoustic accuracy in QGC in an easy way.
-            # The accuracy is not available in standard telemetry values.
-            out_json["message"]['vdop'] = 65535.0 if acoustic_locator_position is None else acoustic_locator_position['std']
+
+            # This is a hack to see the acoustic accuracy in QGC and log it in an easy way.
+            # The horiz_accuracy is not available in standard telemetry values of QGC.
+            # Ardupilot does not use VDOP
+            if acoustic_locator_position is None:
+                # value means not valid in MAVLINK
+                out_json["message"]['vdop'] = 65535.0
+            else:
+                out_json["message"]['vdop'] = acoustic_locator_position['std']
 
             if global_locator_position is not None:
                 out_json["message"]['lat'] = math.floor(global_locator_position['lat'] * 1e7)
                 out_json["message"]['lon'] = math.floor(global_locator_position['lon'] * 1e7)
                 # ignore_gps overrides satellites_visible so that ArduSub will trust the GPS
-                out_json["message"]['satellites_visible'] = max(global_locator_position['numsats'], 6 if args.ignore_gps else 0)
+                out_json["message"]['satellites_visible'] = max(global_locator_position['numsats'], 6 if ignore_gps else 0)
                 # GPS orientation is forwarded from the received heading /VFR_HUD/message/heading
                 if global_locator_position['orientation'] == -1:
-                    out_json["message"]['yaw'] = 0  # invalid
+                    # value 0 means not valid in MAVLINK
+                    out_json["message"]['yaw'] = 0
                 elif global_locator_position['orientation'] == 0:
                     out_json["message"]['yaw'] = 36000  # remap 0 -> 360
                 else:
                     out_json["message"]['yaw'] = math.floor(global_locator_position['orientation'] * 100)  # default
+            else:
+                out_json["message"]['lat'] = 0
+                out_json["message"]['lon'] = 0
+                out_json["message"]['satellites_visible'] = 6 if ignore_gps else 0
+                out_json["message"]['yaw'] = 0
 
         except Exception as e:
             logger.error(f"Parsing locator position not successfull. {e}")

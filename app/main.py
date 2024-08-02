@@ -20,6 +20,9 @@ class UgpsExtension:
         self.args = args
 
     def run(self) -> None:
+        """ Startup of servce and main loop"""
+        logger.info("Starting BlueOS extension for Water Linked Underwater GPS G2.")
+
         self.setup_streamrates()
         # Sets GPS type to MAVLINK
         self.mavlink.set_param("GPS_TYPE", "MAV_PARAM_TYPE_UINT8", 14)
@@ -28,18 +31,23 @@ class UgpsExtension:
 
         logger.info("Running")
 
-        update_period = args.update_period
-        last_master_update = 0
-        last_locator_update = 0
-        last_position_update = 0
+        update_period = self.args.update_period
+        last_config_update = 0.0
+        last_master_update = 0.0
+        last_locator_update = 0.0
+        last_position_update = 0.0
 
         while True:
-            time.sleep(0.02)
+            time.sleep(0.05)
+            if time.time() > last_config_update + 5:
+                # Check if UGPS configuration changed every 5s
+                self.ugps.fetch_ugps_config()
+
             if time.time() > last_position_update + update_period:
                 last_position_update = time.time()
                 logger.info("Forwarding depth, temperature and orientation from mavlink to ugps")
                 # send depth and temprature information to upgs
-                self.ugps.send_locator_depth_temperature(self.mavlink.get_depth(), self.mavlink.get_temperature())
+                self.ugps.send_locator_depth_temperature(self.mavlink.get_depth(self.args.use_alt_depth), self.mavlink.get_temperature())
 
                 # Send heading to ugps
                 self.ugps.send_locator_orientation(self.mavlink.get_orientation())
@@ -52,10 +60,10 @@ class UgpsExtension:
                 global_locator_position = self.ugps.get_global_locator_position()
                 acoustic_locator_position = self.ugps.get_acoustic_locator_position()
                 # always update mavlink position, even if no data received from topside (mavlink has to know that position is invalid)
-                self.mavlink.send_gps_input(global_locator_position, acoustic_locator_position, args)
+                self.mavlink.send_gps_input(global_locator_position, acoustic_locator_position, self.args, self.ugps)
 
             # Expected update rate 1Hz, request rate 4Hz
-            if args.qgc_ip != "" and time.time() > last_master_update + update_period:
+            if self.args.qgc_ip != "" and time.time() > last_master_update + update_period:
                 last_master_update = time.time()
 
                 logger.info("Forwarding topside position from upgs to qgc")
@@ -65,7 +73,7 @@ class UgpsExtension:
 
     def setup_streamrates(self):
         """
-        Setup message streams to get Orientation(VFR_HUD), Depth(AHRS2), and temperature(SCALED_PRESSURE2)
+        Setup message streams to get Orientation(VFR_HUD), Depth(VFR_HUD or AHRS2), and temperature(SCALED_PRESSURE2)
         """
         # VFR_HUD at at least 5Hz
         while not self.mavlink.ensure_message_frequency("VFR_HUD", 5):
@@ -79,8 +87,7 @@ class UgpsExtension:
             time.sleep(2)
 
 
-if __name__ == "__main__":
-    logger.info("Starting BlueOS extension for Water Linked Underwater GPS G2.")
+def main():
     parser = argparse.ArgumentParser(description="BlueOS extension for Water Linked Underwater GPS G2.\
                                      The defaults of the command line arguments allow for easy testing of \
                                      the extension in a development environment, see the dockerfile for \
@@ -100,6 +107,8 @@ if __name__ == "__main__":
                         help="By default Locator fix_type/GPS-Lock is true if Topside has GPS fix and acoustic fix. Ignore GPS fix with this option.")
     parser.add_argument('--ignore_acoustic', action="store_true",
                         help="By default Locator fix_type/GPS-Lock is true if Topside has GPS fix and acoustic fix. Ignore acoustic fix with this option.")
+    parser.add_argument('--use_alt_depth', action="store_true",
+                        help="Use alternative depth source: By default the extension uses the mavlink message /VFR_HUD/message/alt to get depth from ROV pressure sensor. Use /AHRS2/message/altitude instead.")
     parser.add_argument('--logfile', action="store_true",
                         help="Store a logfile with timestamp as name.")
     args = parser.parse_args()
@@ -109,3 +118,6 @@ if __name__ == "__main__":
 
     service = UgpsExtension(args)
     service.run()
+
+if __name__ == "__main__":
+    main()

@@ -16,6 +16,11 @@ class UgpsConnection:
         # store host
         self.host = host
 
+        # settings of the UGPS Topside: read through API
+        self.config_gps_static = False
+        self.config_compass_static = False
+        self.host_is_demo = "demo" in host
+
     def get(self, path: str):
         """
         Helper to request with GET from ugps
@@ -71,16 +76,20 @@ class UgpsConnection:
             except Exception as e:
                 logger.debug(f"Got {e}")
             time.sleep(5)
+        logger.debug("Got response to about")
+        while True:
+            if self.fetch_ugps_config(is_init=True):
+                break
+            time.sleep(5)
 
     # Specific messages
-    def check_position(self, json: object) -> bool:
+    def check_position(self, json: object):
         if json is None:
             return None
         if 'lat' not in json or 'lon' not in json or 'orientation' not in json:
             logger.error(f"Position format not valid.")
             return None
-        else:
-            return json
+        return json
 
     def get_acoustic_locator_position(self):
         return self.get("/api/v1/position/acoustic/filtered")
@@ -90,6 +99,29 @@ class UgpsConnection:
 
     def get_ugps_topside_position(self):
         return self.check_position(self.get("/api/v1/position/master"))
+
+    def fetch_ugps_config(self, is_init=False) -> bool:
+        """
+        Gets configuration from UGPS Topside and updates the state
+        is_init: If called from init, the values are always updated.
+        returns: True on success
+        """
+        cfg = self.get("/api/v1/config/generic")
+        if cfg is None:
+            return False
+        try:
+            gps_static = cfg["gps"] == "static"
+            compass_static = cfg["compass"] == "static"
+        except Exception:
+            logger.error("UGPS Config format unexpected")
+            return False
+
+        if is_init or self.config_gps_static != gps_static or self.config_compass_static != compass_static:
+            logger.info(f"Updating configuration to gps_static={gps_static} compass_static={compass_static}")
+            self.config_gps_static = gps_static
+            self.config_compass_static = compass_static
+        return True
+
 
     def send_locator_depth_temperature(self, depth: float, temperature: float):
         json = {}

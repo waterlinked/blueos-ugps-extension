@@ -5,7 +5,7 @@ RUN python /app/setup.py install
 
 EXPOSE 80/tcp
 
-LABEL version="1.0.7-beta.2"
+LABEL version="1.0.7"
 
 LABEL permissions='\
 {\
@@ -19,8 +19,8 @@ LABEL permissions='\
 }'
 LABEL authors='[\
     {\
-        "name": "Willian Galvani",\
-        "email": "willian@bluerobotics.com"\
+        "name": "Water Linked",\
+        "email": "support@waterlinked.com"\
     }\
 ]'
 LABEL company='{\
