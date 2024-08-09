@@ -2,7 +2,9 @@
 
 ## State
 
-This extension **has no UI page** (so it creates no listing in the sidebar of BlueOS).
+This BlueOS-extension **has no UI page** (so it creates no listing in the sidebar of BlueOS).
+
+Documentation of the hardware and standard use can be found at https://waterlinked.github.io/underwater-gps/integration/bluerov-integration/ . This README is intended for advanced users.
 
 ## Functionality
 
@@ -15,11 +17,10 @@ Assuming the UGPS is detected and working, this service
     * This feature is **experimental** and does not work reliably with all versions of QGroundControl.
 
 Information flow triggered by this extension:
-![Information flow triggered by this extension](./docs/extension_information_flow.svg)
+
+![Information flow triggered by this extension](./docs/ugps_extension_message_flow.png)
 
 If you do not have access to a UGPS system, you can use UGPS_HOST=https://demo.waterlinked.com , which simulates a UGPS system with its API.
-
-Hardware documentation can be found at https://waterlinked.github.io/underwater-gps/integration/bluerov-integration/
 
 ## How to install
 
@@ -29,11 +30,17 @@ There are 2 options
 * Click Extensions > Extensions Manager
 * Install this extension
 
-Configuration is usually not required, but can be done by editing the extension in the "Installed" tab of the Extensions Manager.
+Configuration of the extension is not required for standard usecases.
 
-Editing requires [Pirate Mode](https://docs.bluerobotics.com/ardusub-zola/software/onboard/BlueOS-latest/advanced-usage/#pirate-mode)
-to be enabled, after which the "Edit" button can be used. Copy the Original Settings contents
-into the Custom settings box, and (if necessary) change the IPs/Host addresses, e.g. to use the demo server:
+You can change the behaviour of this extension by editing the command-line parameters with which it is started:
+
+* Editing requires [Pirate Mode](https://docs.bluerobotics.com/ardusub-zola/software/onboard/BlueOS-latest/advanced-usage/#pirate-mode)
+to be enabled. Turn that on.
+* Open the "Installed" tab of the Extensions Manager.
+* In Pirate Mode an "Edit"-button becomes available below the UGPS extension.
+* Copy the Original Settings contents into the Custom settings box, and (if necessary) change the IPs/Host addresses or additional args (EXTRA_ARGS=)
+
+Example to use our demo server - if you do not have a UGPS system and still want to test the extension:
 ```
 {
   "NetworkMode": "host",
@@ -46,7 +53,7 @@ into the Custom settings box, and (if necessary) change the IPs/Host addresses, 
 }
 ```
 
-Use the "View Logs" button to check the status.
+* Use the "View Logs" button to check the status of the extension and debug connection issues.
 
 ### For developers: Build docker image yourself and start it
 
@@ -82,6 +89,6 @@ docker start [container-id]
 docker log [container-id] # if run detached
 
 # if you are a developer, upload the docker image to registry with (replace "latest" with desired tag)
-docker login -u waterlinked
+docker login -u waterlinked docker.io
 docker push waterlinked/blueos-ugps-extension:latest
 ```
