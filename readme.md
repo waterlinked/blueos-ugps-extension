@@ -22,6 +22,28 @@ Information flow triggered by this extension:
 
 If you do not have access to a UGPS system, you can use UGPS_HOST=https://demo.waterlinked.com , which simulates a UGPS system with its API.
 
+### How the GPS_INPUT message is formed
+
+The `GPS_INPUT` Mavlink messages are originally intended to be sent from satellite based navigation systems. This extension is for a navigation system that uses
+a standard GPS to estimate the topside position ("Topside GPS" below) and a SBL-system for an acoustic position relative to this topside position ("relative acoustic" below). So the fields of the GPS_INPUT message
+are sent in a non-standard way. The implementation focusses on desirable behaviour in Ardusub rather than correctness by the standard. This is a summary, see send_gps_input() for details:
+
+**Normal mode with dynamic topside position:**
+* fix_type = Topside GPS fix type (3D/2D). Always 0 when no acoustic fix, e.g. due to ROV not in water
+* lat/lon = Topside GPS position + relative acoustic position = absolute ROV position
+* hdop = Topside GPS hdop
+* horiz_accuracy = acoustic position accuarcy, standard deviation in m
+* vdop = acoustic position accuarcy, standard deviation in m (This value can be turned on in QGC headup-display while the above can not be turned on)
+* satellites_visible = Topside GPS satellites visible
+
+**Static Topside position set in UGPS GUI, Topside GPS off:**
+* fix_type = 3 when acoustic fix present. Always 0 when no acoustic fix, e.g. due to ROV not in water
+* lat/lon = Static topside position + relative acoustic position = absolute ROV position
+* hdop = 1 constant (to not trigger Ardusub failsafe)
+* horiz_accuracy = acoustic position accuarcy, standard deviation in m
+* vdop = acoustic position accuarcy, standard deviation in m (This value can be turned on in QGC headup-display while the above can not be turned on)
+* satellites_visible = 6 constant (to not trigger Ardusub failsafe)
+
 ## How to install
 
 There are 2 options
@@ -31,6 +53,8 @@ There are 2 options
 * Install this extension
 
 Configuration of the extension is not required for standard usecases.
+
+### If you want to configure this extension for non-standard usecases
 
 You can change the behaviour of this extension by editing the command-line parameters with which it is started:
 
