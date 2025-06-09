@@ -9,7 +9,7 @@ Documentation of the hardware and standard use can be found at https://waterlink
 ## Functionality
 
 Assuming the UGPS is detected and working, this service
-* forwards MAVLink data from [Mavlink2Rest](https://github.com/patrickelectric/mavlink2rest) like depth to the UGPS Topside (to enable it to function)
+* forwards MAVLink data from [Mavlink2Rest](https://github.com/mavlink/mavlink2rest) like depth to the UGPS Topside (to enable it to function)
 * forwards locator position from UGPS Topside to MAVLink (message `GPS_INPUT`)
     * the autopilot should send corresponding `GPS_RAW_INT` messages to the topside computer (QGroundControl)
     * the autopilot sends regular `GLOBAL_POSITION_INT` messages to the topside computer with its filtered position estimates
@@ -58,21 +58,20 @@ Configuration of the extension is not required for standard usecases.
 
 You can change the behaviour of this extension by editing the command-line parameters with which it is started:
 
-* Editing requires [Pirate Mode](https://docs.bluerobotics.com/ardusub-zola/software/onboard/BlueOS-latest/advanced-usage/#pirate-mode)
-to be enabled. Turn that on.
+* Editing requires [Pirate Mode](https://blueos.cloud/docs/stable/usage/advanced/#pirate-mode) to be enabled. Turn that on.
 * Open the "Installed" tab of the Extensions Manager.
 * In Pirate Mode an "Edit"-button becomes available below the UGPS extension.
 * Copy the Original Settings contents into the Custom settings box, and (if necessary) change the IPs/Host addresses or additional args (EXTRA_ARGS=)
 
 Example to use our demo server - if you do not have a UGPS system and still want to test the extension:
-```
+```json
 {
   "NetworkMode": "host",
   "Env": [
-  "UGPS_HOST=https://demo.waterlinked.com",
-  "MAVLINK_HOST=http://192.168.2.2:6040",
-  "QGC_IP=192.168.2.1",
-  "EXTRA_ARGS="
+    "UGPS_HOST=https://demo.waterlinked.com",
+    "MAVLINK_HOST=http://192.168.2.2:6040",
+    "QGC_IP=192.168.2.1",
+    "EXTRA_ARGS="
   ]
 }
 ```
@@ -81,10 +80,10 @@ Example to use our demo server - if you do not have a UGPS system and still want
 
 ### For developers: Build docker image yourself and start it
 
-To set this up, ssh into the Raspberry Pi (or access via `red-pill` in [BlueOS Terminal](https://docs.bluerobotics.com/ardusub-zola/software/onboard/BlueOS-1.0/advanced-usage/#terminal))
+To set this up, ssh into the Raspberry Pi (or access via `red-pill` in [BlueOS Terminal](https://blueos.cloud/docs/stable/usage/advanced/#terminal))
 
 install git, clone this repository and run
-```
+```sh
 # build the docker image
 docker build -t waterlinked/blueos-ugps-extension:latest .
 # see all images
