@@ -175,6 +175,13 @@ class Mavlink2RestBase:
 
 
 class Mavlink2RestHelper(Mavlink2RestBase):
+    GGA_to_MAVLink_fix = {
+        0: 0,  # No fix
+        1: 3,  # GPS fix --> 3D fix
+        2: 4,  # DGPS fix
+        4: 5,  # RTK fix
+    }
+
     def get_depth(self, use_alt_depth=False):
         if use_alt_depth:
             # This can be used if using VFR_HUD causes problems.
@@ -224,7 +231,7 @@ class Mavlink2RestHelper(Mavlink2RestBase):
                 logger.debug(f"fix_type={fix_type} from Topside GPS. static={ugps_connection.config_gps_static} args.ignore_gps={args.ignore_gps}")
             # use (onboard) GPS fixtype as default
             else:
-                fix_type = global_locator_position['fix_quality']
+                fix_type = GGA_to_MAVLink_fix.get(global_locator_position['fix_quality'])
                 logger.debug(f"fix_type={fix_type} from Topside GPS.")
 
             # when acoustic position is not valid, fix_type is set to 0

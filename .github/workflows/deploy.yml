@@ -1,0 +1,23 @@
+name: Deploy BlueOS Extension Image
+
+on:
+  push:
+  # Run manually
+  workflow_dispatch:
+  # NOTE: caches may be removed if not run weekly
+  #  -> may be worth scheduling for every 6 days
+
+jobs:
+  deploy-docker-image:
+    # set the agent to run on
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy BlueOS Extension
+        uses: BlueOS-community/Deploy-BlueOS-Extension@v1
+        # specify the desired variables
+        with:
+          docker-username: ${{ secrets.DOCKER_USERNAME }}
+          docker-password: ${{ secrets.DOCKER_PASSWORD }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # image-name should not start with blueos- (see image-prefix)
+          image-name: 'ugps-extension'
